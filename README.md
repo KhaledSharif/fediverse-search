@@ -1,15 +1,18 @@
 # Fediverse Search
 
-A minimal, test-driven Node.js/TypeScript application for searching across multiple fediverse servers (Mastodon, Threads, and other ActivityPub-compatible platforms).
+An interactive terminal browser for searching across multiple fediverse servers (Mastodon, Threads, and other ActivityPub-compatible platforms). Built with React + Ink for a rich terminal UI experience.
 
 ## Features
 
+- **Interactive Terminal UI**: Master-detail split screen with keyboard navigation
 - **Multi-server search**: Query multiple fediverse instances in parallel
 - **Protocol support**: Mastodon, Pixelfed, and Threads (via ActivityPub)
+- **Live ranking**: Switch between date, engagement, and relevance sorting on-the-fly
+- **Dynamic filtering**: Filter results by server or search within results
+- **Open in browser**: Press 'o' or Enter to open posts in your default browser
 - **Deduplication**: Automatically removes duplicate posts across servers
-- **Flexible ranking**: Sort results by date, engagement, or relevance
 - **Configurable**: Easily add or remove servers via config file
-- **Well-tested**: Built with TDD (44 passing tests)
+- **Well-tested**: Built with TDD (70 passing tests)
 
 ## Installation
 
@@ -71,53 +74,79 @@ MASTODON_ART_ACCESS_TOKEN=your_token_here
 
 ## Usage
 
-### Development mode
+### Quick Start
 
 ```bash
 npm run dev -- "your search query"
 ```
 
-### With options
+This launches an interactive terminal browser where you can:
+- Navigate results with arrow keys
+- View full post details in real-time
+- Open posts in your browser
+- Filter and re-rank results dynamically
 
-```bash
-npm run dev -- "climate change" --rank engagement --limit 10
+### Interactive UI Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Search: "cats" | 42 results | Rank: date                     │
+├────────────────────┬─────────────────────────────────────────┤
+│ Results (1-10/42)  │ @alice@mastodon.social                  │
+│                    │                                         │
+│ > @alice: Check... │ Full post content appears here          │
+│   @bob: Amazing... │ without truncation.                     │
+│   @carol: Look...  │                                         │
+│   @dave: I love... │ Posted: 2025-11-15 14:32:45             │
+│   @eve: Best...    │ Server: mastodon.social                 │
+│   @frank: Wow...   │                                         │
+│   @grace: Here...  │ ⬆️ 5 boosts  ❤️ 10 favorites            │
+│   @henry: Another..│                                         │
+│   @iris: Testing...│ 🔗 https://mastodon.social/@alice/123   │
+│   @jane: Final...  │                                         │
+├────────────────────┴─────────────────────────────────────────┤
+│ ↑/↓ Navigate | o Open | / Search | f Filter | r Rank | q Quit │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Production build
+### Keyboard Shortcuts
 
-```bash
-npm run build
-npm start "your search query"
-```
+- **↑/↓** or **j/k** - Navigate through results list
+- **o** or **Enter** - Open selected post in default browser
+- **/** - Search within results (filter by keyword)
+- **f** - Filter results by server
+- **r** - Cycle through ranking strategies (date → engagement → relevance)
+- **q** or **Esc** - Quit the browser
 
-## Options
-
-- `--rank <strategy>` - Ranking strategy:
-  - `date` - Sort by newest first (default)
-  - `engagement` - Sort by boosts + favorites
-  - `relevance` - Sort by keyword match density
+### Command-Line Options
 
 - `--config <path>` - Path to config file (default: `config.json`)
-
-- `--limit <number>` - Max results to display (default: 20)
-
 - `--help`, `-h` - Show help message
 
-## Examples
+### Examples
 
-Search for photography content ranked by engagement:
+Basic search:
 ```bash
-npm run dev -- photography --rank engagement
+npm run dev -- "climate change"
 ```
 
-Search for climate discussions with relevance ranking:
-```bash
-npm run dev -- "climate change" --rank relevance
-```
-
-Use a custom config file:
+Search with custom config:
 ```bash
 npm run dev -- "open source" --config custom-servers.json
+```
+
+Production build:
+```bash
+npm run build
+npm start "photography"
+```
+
+### Quick Script
+
+For convenience, use the provided `run.sh` script:
+
+```bash
+./run.sh "your search query"
 ```
 
 ## Development
@@ -138,7 +167,7 @@ npm run build            # Compile TypeScript
 
 ## Architecture
 
-Built using Test-Driven Development (TDD) with the red-green-refactor cycle:
+Built using Test-Driven Development (TDD) with the red-green-refactor cycle, using React + Ink for the interactive terminal UI.
 
 ### Core Modules
 
@@ -150,30 +179,52 @@ Built using Test-Driven Development (TDD) with the red-green-refactor cycle:
   - `mastodon.ts` - Mastodon/Pixelfed API
   - `threads.ts` - Threads ActivityPub API
   - `base.ts` - Shared adapter logic
+- **ui/** - Interactive terminal UI components (React + Ink)
+  - `App.tsx` - Main application with state management
+  - `components/` - Reusable UI components
+  - `hooks/` - Custom React hooks
 
 ### Project Structure
 
 ```
 fediverse-search/
 ├── src/
-│   ├── index.ts              # CLI entry point
+│   ├── index.ts              # CLI entry point & Ink renderer
 │   ├── search.ts             # Search orchestrator
 │   ├── config.ts             # Config loader
 │   ├── dedupe.ts             # Deduplication
 │   ├── ranker.ts             # Ranking logic
 │   ├── types.ts              # TypeScript types
-│   └── adapters/
-│       ├── base.ts           # Base adapter
-│       ├── mastodon.ts       # Mastodon adapter
-│       └── threads.ts        # Threads adapter
+│   ├── adapters/
+│   │   ├── base.ts           # Base adapter
+│   │   ├── mastodon.ts       # Mastodon adapter
+│   │   └── threads.ts        # Threads adapter
+│   └── ui/
+│       ├── App.tsx           # Main Ink application
+│       ├── components/
+│       │   ├── MasterDetailLayout.tsx  # Split screen layout
+│       │   ├── ResultsList.tsx         # Scrollable results
+│       │   ├── DetailView.tsx          # Post details
+│       │   └── StatusBar.tsx           # Keyboard shortcuts
+│       └── hooks/
+│           └── useUrlOpener.ts         # Open URLs in browser
 ├── tests/
 │   ├── config.test.ts
 │   ├── search.test.ts
 │   ├── dedupe.test.ts
 │   ├── ranker.test.ts
-│   └── adapters/
-│       ├── mastodon.test.ts
-│       └── threads.test.ts
+│   ├── adapters/
+│   │   ├── mastodon.test.ts
+│   │   └── threads.test.ts
+│   └── ui/
+│       ├── App.test.tsx
+│       ├── components/
+│       │   ├── MasterDetailLayout.test.tsx
+│       │   ├── ResultsList.test.tsx
+│       │   ├── DetailView.test.tsx
+│       │   └── StatusBar.test.tsx
+│       └── hooks/
+│           └── useUrlOpener.test.ts
 ├── config.json               # Server configuration
 └── package.json
 ```
@@ -184,17 +235,30 @@ fediverse-search/
 2. **Parallel queries** - Searches all configured servers simultaneously
 3. **Merge results** - Combines responses from all servers
 4. **Deduplicate** - Removes duplicate posts (by URL)
-5. **Rank** - Sorts results by chosen strategy
-6. **Display** - Outputs formatted results
+5. **Initial rank** - Sorts results by date (default)
+6. **Launch interactive UI** - Renders React-based terminal browser using Ink
+7. **Real-time interactions** - Handle keyboard input for navigation, filtering, ranking, and URL opening
+
+## Interactive Features
+
+The Ink-powered UI provides these real-time interactions:
+
+- **Master-Detail Layout**: Split screen shows list (left) and details (right)
+- **Live Ranking**: Press 'r' to cycle through date/engagement/relevance without re-querying
+- **Dynamic Filtering**: Press 'f' to filter by server or '/' to search within content
+- **Instant Navigation**: Arrow keys update the detail view immediately
+- **Browser Integration**: Press 'o' to open the selected post URL in your default browser
 
 ## Testing
 
 This project was built using strict TDD:
 
-- 44 tests covering all core functionality
-- Unit tests for each module
+- **70 passing tests** covering all functionality
+- Unit tests for each module (search, config, dedupe, ranker)
+- Component tests for all UI components (App, ResultsList, DetailView, etc.)
 - Integration tests for search orchestrator
-- Mocked external API calls
+- Hook tests for URL opening functionality
+- Mocked external API calls for reliability
 
 ## Adding New Servers
 

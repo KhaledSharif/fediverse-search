@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
+import React from 'react';
+import { render } from 'ink';
 import { config } from 'dotenv';
 import { loadConfig } from './config.js';
 import { search } from './search.js';
-import { RankingStrategy } from './types.js';
+import { App } from './ui/App.js';
 
 // Load environment variables from .env file
 config();
@@ -13,7 +15,7 @@ async function main() {
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`
-Fediverse Search - Search across multiple fediverse servers
+Fediverse Search - Interactive terminal browser for fediverse search
 
 Usage:
   npm run dev -- <query> [options]
@@ -23,34 +25,34 @@ Usage:
   npm start <query> [options]
 
 Options:
-  --rank <strategy>    Ranking strategy: date, engagement, relevance (default: date)
   --config <path>      Path to config file (default: config.json)
-  --limit <number>     Max results to display (default: 20)
   --help, -h           Show this help message
 
+Keyboard Shortcuts:
+  ↑/↓  or j/k          Navigate results
+  o    or Enter        Open selected post in browser
+  /                    Search within results
+  f                    Filter by server
+  r                    Cycle ranking (date → engagement → relevance)
+  q    or Esc          Quit
+
 Examples:
-  npm run dev -- "climate change" --rank engagement
-  npm run dev -- "open source" --rank relevance
-  npm start "photography" --rank date --limit 10
+  npm run dev -- "climate change"
+  npm run dev -- "open source" --config custom.json
+  npm start "photography"
 `);
     process.exit(0);
   }
 
   // Parse arguments
   let query = '';
-  let ranking: RankingStrategy = 'date';
   let configPath = 'config.json';
-  let limit = 20;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === '--rank' && i + 1 < args.length) {
-      ranking = args[++i] as RankingStrategy;
-    } else if (arg === '--config' && i + 1 < args.length) {
+    if (arg === '--config' && i + 1 < args.length) {
       configPath = args[++i];
-    } else if (arg === '--limit' && i + 1 < args.length) {
-      limit = parseInt(args[++i], 10);
     } else if (!arg.startsWith('--')) {
       query += (query ? ' ' : '') + arg;
     }
@@ -62,40 +64,24 @@ Examples:
     process.exit(1);
   }
 
+  // Show loading message
   console.log(`Searching for: "${query}"`);
-  console.log(`Ranking by: ${ranking}\n`);
+  console.log('Fetching results...\n');
 
   // Load config
-  const config = loadConfig(configPath);
-  console.log(`Querying ${config.servers.length} servers...\n`);
+  const configData = loadConfig(configPath);
 
   // Perform search
-  const results = await search(query, config.servers, ranking);
+  const results = await search(query, configData.servers, 'date');
 
-  // Display results
+  // Check if we have results
   if (results.length === 0) {
     console.log('No results found.');
-    return;
+    process.exit(0);
   }
 
-  console.log(`Found ${results.length} results:\n`);
-
-  const displayResults = results.slice(0, limit);
-
-  for (let i = 0; i < displayResults.length; i++) {
-    const result = displayResults[i];
-    console.log(`${i + 1}. [${result.server}] @${result.user}`);
-    console.log(`   ${result.content.slice(0, 200)}${result.content.length > 200 ? '...' : ''}`);
-    console.log(`   ${result.url}`);
-    if (result.boosts || result.favorites) {
-      console.log(`   ⬆️  ${result.boosts} boosts  ❤️  ${result.favorites} favorites`);
-    }
-    console.log();
-  }
-
-  if (results.length > limit) {
-    console.log(`... and ${results.length - limit} more results (use --limit to show more)`);
-  }
+  // Render the interactive UI
+  render(React.createElement(App, { query, results }));
 }
 
 main().catch((error) => {
