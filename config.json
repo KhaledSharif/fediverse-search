@@ -1,0 +1,20 @@
+{
+  "servers": [
+    {
+      "name": "mastodon.social",
+      "type": "mastodon"
+    },
+    {
+      "name": "hachyderm.io",
+      "type": "mastodon"
+    },
+    {
+      "name": "mastodon.art",
+      "type": "mastodon"
+    },
+    {
+      "name": "pixelfed.social",
+      "type": "mastodon"
+    }
+  ]
+}
